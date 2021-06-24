@@ -62,7 +62,7 @@ for i in dataset_A.slides:
     i.name = i.name.replace("_", "")
     i.name = i.name.replace("X01Y01", "")
 
-dataset_A.slides[0].name = dataset_A.slides[0].name.replace('Y01', '')
+#dataset_A.slides[0].name = dataset_A.slides[0].name.replace('Y01', '')
 
 
 for i in dataset_B.slides:
@@ -137,9 +137,10 @@ origin_A = origin_A.astype(str).str.replace("[^a-zA-Z0-9 \n\.]", "")
 origin_A = origin_A.astype(str).str.replace("[\n]", "")
 origin_A = origin_A.str.replace("SlideDataname", "")
 origin_A = origin_A.str.replace("X.*", "")
+origin_A = origin_A +'_A'
 adata_combined_A.obs['Region'] = origin_A
 #adata_combined_A.write_loom(filename='./data/loomCombined_A.loom', write_obsm_varm=True)
-adata_combined_A.write(filename='./data/loomCombined_A.h5ad')
+#adata_combined_A.write(filename='./data/loomCombined_A.h5ad')
 adata_combined_A = ad.read_h5ad(filename='./data/loomCombined_A.h5ad', chunk_size=100000)
 # Batch correction
 #sc.pp.combat(adata_combined_A, key='Region')
@@ -152,10 +153,11 @@ origin_B = adata_combined_B.obs['Region']
 origin_B = origin_B.astype(str).str.replace("[^a-zA-Z0-9 \n\.]", "")
 origin_B = origin_B.astype(str).str.replace("[\n]", "")
 origin_B = origin_B.str.replace("SlideDataname", "")
-origin_B = origin_B.str.replace("X.*", "")
+origin_B = origin_B.str.replace("Z.*", "")
+origin_B = origin_B+'_B'
 adata_combined_B.obs['Region'] = origin_B
-adata_combined_B.write_loom(filename='./data/loomCombined_B.loom', write_obsm_varm=True)
-adata_combined_B.write(filename='./data/loomCombined_B.h5ad')
+#adata_combined_B.write_loom(filename='./data/loomCombined_B.loom', write_obsm_varm=True)
+#adata_combined_B.write(filename='./data/loomCombined_B.h5ad')
 adata_combined_B = ad.read_h5ad(filename='./data/loomCombined_B.h5ad', chunk_size=100000)
 # Batch correction
 #sc.pp.combat(adata_combined_B, key='Region')
@@ -222,23 +224,26 @@ CountMatrix
 
 #sc.pp.normalize_total(adata_combined_All)
 
+# Scaling
 sc.pp.log1p(adata_combined_All)
-
 sc.pp.scale(adata_combined_All, zero_center=False)
 
+# PCA
 sc.tl.pca(adata_combined_All, svd_solver='arpack')
-sc.pl.pca_variance_ratio(adata_combined_All, log=True, n_pcs = 30)
+#sc.pl.pca_variance_ratio(adata_combined_All, log=True, n_pcs = 30)
 
 sc.external.pp.harmony_integrate(adata_combined_All, 'TMA')
 
 sc.pl.embedding(adata_combined_All, basis='X_pca_harmony', color=['TMA'])
+sc.pl.embedding(adata_combined_All, basis='X_pca', color=['TMA'])
 
-
+# Compute neighbors and embedding
 #sc.pp.neighbors(adata_combined_All, n_neighbors=15, n_pcs=30)
 sc.pp.neighbors(adata_combined_All, n_neighbors=15, n_pcs=30, use_rep='X_pca_harmony')
-
 sc.tl.umap(adata_combined_All)
+
 sc.pl.umap(adata_combined_All, color=['Region'])
+sc.pl.umap(adata_combined_All, color=['TMA'])
 
 # Clustering (Leiden)
 #sc.tl.leiden(adata_combined_All, resolution = 0.3)
@@ -253,7 +258,7 @@ adata_combined_All.obs['louvain'].value_counts()
 #sc.pl.umap(adata_combined_All, color='leiden', save= 'Umap_LeidenClusters0.4.png')
 
 with rc_context({'figure.figsize': (10, 10)}):
-sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters0.3.png')
+sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters0.5.png')
 
 #with rc_context({'figure.figsize': (10, 10)}):
 #sc.pl.umap(adata_combined_All, color='Region', save= 'Umap_Regions.png')
@@ -276,11 +281,11 @@ sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='t-test'
 #sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='leiden', vmax=2, n_genes=3, values_to_plot = 'logfoldchanges', save='ClusterMarkersDotplot.png')
 
 #sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='leiden', n_genes=5, dendrogram = False, cmap='bwr', values_to_plot = 'logfoldchanges', vmin=-4, vmax=4, save='LeidenMarkersDotplot_0.3_scaled.png')
-sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='louvain', n_genes=5, dendrogram = False, cmap='bwr', values_to_plot = 'logfoldchanges', vmin=-4, vmax=4, save='LouvainMarkersDotplot_0.4_scaled.png')
+sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='louvain', n_genes=5, dendrogram = False, cmap='bwr', values_to_plot = 'logfoldchanges', vmin=-4, vmax=4, save='LouvainMarkersDotplot_0.5_scaled.png')
 
 
 #sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='LeidenMarkers0.3_ttest_scaled.png')
-sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='LouvainMarkers0.4_ttest_scaled.png')
+sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='LouvainMarkers0.5_ttest_scaled.png')
 
 #sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='ClustersMarkers0.3_Wilcox.png')
 #sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='ClustersMarkers0.3_logreg.png')
@@ -289,7 +294,7 @@ sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='Louv
 adata_combined_All.write(filename='./data/adataCombined_All_Proc_scaled.h5ad')
 
 # read the processed anndata object
-adata_combined_All = ad.read_h5ad('./data/adataCombined_All_Proc.h5ad', chunk_size=100000)
+adata_combined_All = ad.read_h5ad('./data/adataCombined_All_Proc_scaled.h5ad', chunk_size=100000)
 
 
 
@@ -334,7 +339,7 @@ adata_combined_All = ad.read_h5ad('./data/adataCombined_All_Proc.h5ad', chunk_si
 #ax = sc.pl.heatmap(adata_combined_All, marker_genes_dict, groupby='leiden', cmap='viridis', dendrogram=False, figsize=(11,11), save='ClustersHeatmap.png')
 #ax = sc.pl.stacked_violin(adata_combined_All, marker_genes_dict, groupby='leiden', swap_axes=False, dendrogram=False, save='ClustersViolin.png')
 
-RankMatrix = sc.get.rank_genes_groups_df(adata_combined_All, group='4')
+RankMatrix = sc.get.rank_genes_groups_df(adata_combined_All, group='44')
 #np.isnan(RankMatrix).sum()
 #RankMatrix.isnull().sum()
 #RankMatrix.isin([0]).sum()
@@ -442,7 +447,7 @@ old_to_new = dict(
     NK41= 'NK cells',
     Tcells42 = 'T cells',
     DCs43 ='DCs',
-    DCs44='DCs'
+    DC44='DCs'
 )
 
 adata_combined_All.obs['cell_types'] = (
@@ -474,9 +479,11 @@ plt.show()
 NoolanData = pd.read_csv('./data/CRC_clusters_neighborhoods_markers.csv')
 NoolanData.shape
 NoolanData['ClusterName'].value_counts()
+NoolanData['groups'].value_counts()
+NoolanData['TMA_AB'].value_counts()
 
 
-## Our data
+## Our data using pathml
 LoomData = adata_combined_All.to_df()
 LoomData['CellID'] = np.linspace(0, 406958, num= 406958).astype(int)
 LoomData.set_index('CellID', inplace=True)
@@ -489,8 +496,13 @@ loomDataAnn = pd.concat([LoomObs, LoomData], axis = 1)
 loomDataAnn['CellID'] = loomDataAnn.index
 loomDataAnn.shape
 
+loomDataAnn['TMA'].value_counts()
+
+# How many cell types we have?
+len(loomDataAnn['cell_types'].unique())
+
 # save
 loomDataAnn.to_csv('./data/CRC_pathml.csv')
 
 X = pd.read_csv('./data/CRC_pathml.csv')
-
+len(X['cell_types'].unique())
