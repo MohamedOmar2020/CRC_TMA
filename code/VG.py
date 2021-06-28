@@ -190,8 +190,11 @@ spot = cells2[cells2['Region']=='reg017_B']
 sizes = draw_voronoi_scatter(spot,[],voronoi_kwargs={'size_max':2000})
 plt.show()
 
-spot = cells2[cells2['Region']=='reg017_B']
+spot = cells2[cells2['Region']=='reg049_A']
 tumor = spot[spot['tumor']==1]
-T_cells = spot[spot['T cells']==1]
-_ = draw_voronoi_scatter(spot,T_cells, voronoi_kwargs={'size_max':1000})
+immune_vasculature = spot[spot['immune/vasculature']==1]
+TILs_TAMs = spot[spot['TILs/TAMs']==1]
+TILs = spot[spot['TILs']==1]
+_ = draw_voronoi_scatter(spot, c = TILs, voronoi_kwargs={'size_max':2000})
 plt.show()
+

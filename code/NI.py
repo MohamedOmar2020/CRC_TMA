@@ -197,13 +197,17 @@ cells['neighborhood10'] = labelskm
 cells[neighborhood_name] = cells[neighborhood_name].astype('category')
 #['reg064_A','reg066_A','reg018_B','reg023_A']
 
-cell_order = ['T cells', 'tumor/immune', 'tumor',
-       'CD8+ T cells', 'NK/granulocytes', 'immune/vasculature', 'tumor/vasculature',
-       'vasculature', 'granulocytes', 'CD45RO+ T cells', 'Tregs', 'NK cells', 'immune cells',
-       'CD68+CD163+ macrophages', 'CD11b+CD68+ macrophages', 'plasma cells',
-       'stroma/immune', 'CD68+ macrophages', 'lymphatic',
-       'CD11b+ monocytes', 'nerves', 'CD163+ macrophages',
-       'DCs']
+cell_order = ['CD45+CD4+ T cells', 'CD4+CD45RO+ T cells',
+       'CD4+GATA3+ T cells', 'Naive/memory T cells',
+       'TILs/TAMs', 'TILs', 'Tregs',
+       'granulocytes', 'CD11b+ monocytes',
+       'CD68+CD163+ macrophages', 'CD68+GzmB+ macrophages', 'CD38+CD68+ macrophages',
+       'plasma cells', 'B cells', 'NK cells', 'immune cells',
+       'smooth muscles', 'stroma', 'lymphatic', 'immune/vasculature',
+       'tumor', 'tumor/immune', 'tumor/immune/vasculature',
+       'epithelial cells', 'epithelial/immune',
+       'nerves',
+        'dirt', 'undefined']
 
 
 # this plot shows the types of cells (ClusterIDs) in the different niches (0-7)
@@ -218,12 +222,12 @@ s.savefig("figures/celltypes_perniche_10.pdf")
 ######
 ## I guess groups here (1,2) refer to CLR and DII?
 cells['neighborhood10'] = cells['neighborhood10'].astype('category')
-sns.lmplot(data = cells[cells['TMA']==0],x = 'x',y='y',hue = 'neighborhood10',palette = 'bright',height = 8,col = reg,col_wrap = 10,fit_reg = False)
-plt.savefig('figures/lmplot_A.png')
+sns.lmplot(data = cells[cells['groups']=='CLR'],x = 'x',y='y',hue = 'neighborhood10',palette = 'bright',height = 8,col = reg,col_wrap = 10,fit_reg = False)
+plt.savefig('figures/lmplot_CLR.png')
 
 cells['neighborhood10'] = cells['neighborhood10'].astype('category')
-sns.lmplot(data = cells[cells['TMA']==1],x = 'x',y='y',hue = 'neighborhood10',palette = 'bright',height = 8,col = reg,col_wrap = 10,fit_reg = False)
-plt.savefig('figures/lmplot_B.png')
+sns.lmplot(data = cells[cells['groups']=='DII'],x = 'x',y='y',hue = 'neighborhood10',palette = 'bright',height = 8,col = reg,col_wrap = 10,fit_reg = False)
+plt.savefig('figures/lmplot_DII.png')
 
 
 ###############
@@ -246,16 +250,17 @@ handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles[:2], labels[:2], title="Groups",
           handletextpad=0, columnspacing=1,
           loc="upper left", ncol=3, frameon=True)
+plt.savefig('figures/Neighborhood_Frequency.png')
 
 #t-test to evaluate if any neighborhood is enriched in one group
 from scipy.stats import ttest_ind
 for i in range(10):
     n2 = melt[melt['neighborhood']==i]
-    print (i,'    ',ttest_ind(n2[n2['groups']==1]['frequency of neighborhood'],n2[n2['groups']==2]['frequency of neighborhood']))
+    print (i,'    ',ttest_ind(n2[n2['groups']=='CLR']['frequency of neighborhood'],n2[n2['groups']=='DII']['frequency of neighborhood']))
 
 ####
-#same as above except neighborhood 5 is removed from analysis.
-fc = cells[cells['neighborhood10']!=5].groupby(['patients','groups']).apply(lambda x: x['neighborhood10'].value_counts(sort = False,normalize = True))
+#same as above except neighborhood 5 (8 in ours!) is removed from analysis.
+fc = cells[cells['neighborhood10']!=8].groupby(['patients','groups']).apply(lambda x: x['neighborhood10'].value_counts(sort = False,normalize = True))
 
 fc.columns = range(10)
 melt = pd.melt(fc.reset_index(),id_vars = ['patients','groups'])
@@ -270,7 +275,9 @@ ax.legend(handles[:2], labels[:2], title="Groups",
           handletextpad=0, columnspacing=1,
           loc="upper left", ncol=3, frameon=True)
 
+plt.savefig('figures/Neighborhood_Frequency_without8.png')
+
+
 for i in range(10):
     n2 = melt[melt['neighborhood']==i]
-#n2 = n2[n2['Frequency']>.015]
-    print (i,'    ',ttest_ind(n2[n2['groups']==1]['frequency of neighborhood'],n2[n2['groups']==2]['frequency of neighborhood']))
+    print (i,'    ',ttest_ind(n2[n2['groups']=='CLR']['frequency of neighborhood'],n2[n2['groups']=='DII']['frequency of neighborhood']))

@@ -25,9 +25,12 @@ import scipy.stats
 import batchglm.api as glm
 import diffxpy.api as de
 import bbknn
+from joblib import parallel_backend
+
 
 #sc.set_figure_params(dpi=200, frameon=True, figsize=(20,15), format='png')
 
+sc._settings.ScanpyConfig(max_memory=35, n_jobs=14)
 ###################################################
 ## Load data from Noolan
 NoolanData = pd.read_csv('./data/CRC_clusters_neighborhoods_markers.csv')
@@ -193,16 +196,8 @@ adata_combined_All.write(filename='./data/loomCombined_All.h5ad')
 #adata_combined_All = ad.read_loom('./data/loomCombined_All.loom', obs_names='obs_names')
 adata_combined_All = ad.read_h5ad('./data/loomCombined_All.h5ad', chunk_size=100000)
 
-
 # Rename the variable names (channels) in the adata object
 adata_combined_All.var_names = channelnames[0]
-
-#adata_combined_All = adata_combined_All[adata_combined_All[: , 'HOECHST1'].X > 0, :]
-#adata_combined.obs['origin'] = re.sub("[^a-zA-Z0-9 \n\.]", "", str(adata_combined.obs['origin']))
-#adata_combined.obs['origin'] = re.sub("VectraSlidename", "", str(adata_combined.obs['origin']))
-#adata_combined.obs['origin'] = re.sub("\s+", "", str(adata_combined.obs['origin']))
-#adata_combined.obs['origin'] = re.sub("^slide .*", '', str(adata_combined.obs['origin']))
-
 
 #######################################
 ## Remove the empty and nuclear channels
@@ -216,8 +211,22 @@ adata_combined_All.obs_names_make_unique()
 #adata_combined_All.var_names = ['CD44_stroma', 'FOXP3_regTcells', 'CDX2_intestinalEpith', 'CD8', 'P53', 'GATA3_TH2', 'CD45_Hemato', 'Tbet_TH1', 'beta_Cat', 'HLA_DR', 'PD_L1', 'Ki67', 'CD45RA_naiveT', 'CD4', 'CD21_DCs', 'MUC1_epith', 'CD30_costimulator', 'CD2_Tcells', 'Vimentin', 'CD20_Bcells', 'LAG3_Checkpoint', 'NaKatpase_memb', 'CD5_Tcells', 'IDO1_metabolism', 'cytokeratin_epith', 'CD11b_macrophages', 'CD56_NK', 'aSMA_smoothMuscle', 'BCL2_apoptosis', 'CD25_IL2Ra', 'Collagen4_BasMemb', 'CD11c_DCs', 'PD1_checkpoint', 'GranzymeB_Cytotoxicity', 'EGFR', 'VISTA_Costimulator', 'CD15_granulocytes', 'CD194_CCR4ChemokineR', 'ICOS_Costimulator', 'MMP9_MatrixMetalloProt', 'Synapto_NE', 'CD71_TransferrinR', 'GFAP_nerves', 'CD7_Tcells', 'CD3_Tcells', 'ChromograninA_NE', 'CD163_macrophages', 'CD57_NK', 'CD45RO_memoryCells', 'CD68_macrophages', 'CD31_vasculature', 'Podoplanin_lymphatics', 'CD34_vasculature', 'CD38_multi', 'CD138_plasmaCells', 'MMP12_MatrixMetellaProt']
 adata_combined_All.var_names = ['HOECHST1', 'CD44-stroma', 'FOXP3-Treg', 'CD8', 'p53', 'GATA3-Th2', 'CD45-hematopoietic', 'T-bet-Th1', 'beta-cat', 'HLA-DR', 'PD-L1', 'Ki67', 'CD45RA-naiveT', 'CD4', 'CD21-DCs', 'MUC-1-epithelia', 'CD30-costimulator', 'CD2-Tcells', 'Vimentin', 'CD20', 'LAG-3-checkpoint', 'CD5-Tcells', 'IDO-1-metabolism', 'Cytokeratin', 'CD11b-macrophages', 'CD56-NK cells', 'aSMA-smooth muscle', 'BCL-2-apoptosis', 'CD25-IL-2Ra', 'CD11c-DCs', 'PD-1-checkpoint', 'Granzyme B-cytotoxicity', 'EGFR', 'VISTA-costimulator', 'CD15-granulocytes', 'ICOS-costimulator', 'Synaptophysin-neuroendocrine', 'GFAP-nerves', 'CD7-Tcells', 'CD3-Tcells', 'ChromograninA-neuroendocrine', 'CD163-macrophages', 'CD57-NK cells', 'CD45RO-memory cells', 'CD68-macrophages', 'CD31-vasculature', 'Podoplanin-lymphatics', 'CD34-vasculature', 'CD38-multifunctional', 'CD138-plasma cells']
 
-sc.pl.violin(adata_combined_All, keys=['HOECHST1'], save='DAPI.png')
+#sc.pl.violin(adata_combined_All, keys=['HOECHST1'], save='DAPI.png')
 
+# Filter cells with DAPI expression < 0
+adata_combined_All = adata_combined_All[adata_combined_All[: , 'HOECHST1'].X > 60, :]
+
+# Remove DAPI
+keep = ['CD44-stroma', 'FOXP3-Treg', 'CD8', 'p53', 'GATA3-Th2', 'CD45-hematopoietic', 'T-bet-Th1', 'beta-cat', 'HLA-DR', 'PD-L1', 'Ki67', 'CD45RA-naiveT', 'CD4', 'CD21-DCs', 'MUC-1-epithelia', 'CD30-costimulator', 'CD2-Tcells', 'Vimentin', 'CD20', 'LAG-3-checkpoint', 'CD5-Tcells', 'IDO-1-metabolism', 'Cytokeratin', 'CD11b-macrophages', 'CD56-NK cells', 'aSMA-smooth muscle', 'BCL-2-apoptosis', 'CD25-IL-2Ra', 'CD11c-DCs', 'PD-1-checkpoint', 'Granzyme B-cytotoxicity', 'EGFR', 'VISTA-costimulator', 'CD15-granulocytes', 'ICOS-costimulator', 'Synaptophysin-neuroendocrine', 'GFAP-nerves', 'CD7-Tcells', 'CD3-Tcells', 'ChromograninA-neuroendocrine', 'CD163-macrophages', 'CD57-NK cells', 'CD45RO-memory cells', 'CD68-macrophages', 'CD31-vasculature', 'Podoplanin-lymphatics', 'CD34-vasculature', 'CD38-multifunctional', 'CD138-plasma cells']
+adata_combined_All = adata_combined_All[: , keep]
+
+# store the raw data for further use
+adata_combined_All.raw = adata_combined_All
+
+# Save the filtered anndata
+adata_combined_All.write(filename='./data/loomCombined_filtered.h5ad')
+
+adata_combined_All = ad.read_h5ad('./data/loomCombined_filtered.h5ad', chunk_size=100000)
 
 ############################
 ## Add patients and groups info
@@ -527,8 +536,6 @@ adata_combined_All.obs['groups'] = (
     .astype('category')
 )
 
-
-
 ## Sanity check
 adata_combined_All.obs['Region'].value_counts()
 adata_combined_All.obs['patients'].value_counts()
@@ -547,52 +554,43 @@ CountMatrix
 
 ################################################
 ## Scanpy workflow
-#sc.pl.violin(adata_combined_All, keys = ['0','24', '29', '33', '60'])
-
-#sc.pl.highest_expr_genes(adata_combined_All, n_top=5, )
-
-#sc.pp.filter_cells(adata_combined_All, min_genes = 40)
-
-#sc.pp.filter_genes(adata_combined_All, min_cells=10)
-
-#sc.pp.normalize_total(adata_combined_All)
 
 # Scaling
 sc.pp.log1p(adata_combined_All)
-sc.pp.scale(adata_combined_All, zero_center=True, max_value=10)
-sc.pl.violin(adata_combined_All, keys=['HOECHST1'], save='DAPI_scaled.png')
-
-# Filter cells with DAPI expression < 0
-adata_combined_All = adata_combined_All[adata_combined_All[: , 'HOECHST1'].X > 0, :]
+sc.pp.scale(adata_combined_All, max_value=10)
+#sc.pl.violin(adata_combined_All, keys=['HOECHST1'], save='DAPI_scaled.png')
 
 # PCA and batch correction
 #bbknn.ridge_regression(adata_combined_All, batch_key=['Region'], confounder_key=['patients'])
 sc.tl.pca(adata_combined_All)
-bbknn.bbknn(adata_combined_All, batch_key='Region', neighbors_within_batch = 15, n_pcs = 30)
+sc.pl.pca_variance_ratio(adata_combined_All, n_pcs=40, log=True)
+#bbknn.bbknn(adata_combined_All, batch_key='Region', neighbors_within_batch = 15, n_pcs = 30, trim = 40)
+sc.external.pp.harmony_integrate(adata_combined_All, key='Region')
+
+adata_combined_All.write(filename='./data/loomCombined_harmony.h5ad')
+
+adata_combined_All = ad.read_h5ad('./data/loomCombined_harmony.h5ad', chunk_size=100000)
+
+
+sc.pp.neighbors(adata_combined_All, n_neighbors=15, n_pcs=40, use_rep='X_pca_harmony')
 
 # compute Umap embedding
 sc.tl.umap(adata_combined_All)
 
 # louvain clustering
-sc.tl.louvain(adata_combined_All, resolution = 0.5)
+with parallel_backend('threading', n_jobs=15):
+    sc.tl.louvain(adata_combined_All, resolution = 2)
+
 adata_combined_All.obs['louvain'].value_counts()
 
 # Save results for DE with MAST
-adata_combined_All.write(filename='./data/loomCombined_Louvain.h5ad')
+adata_combined_All.write(filename='./data/loomCombined_processed.h5ad')
 
-
-
-
-#sc.external.pp.harmony_integrate(adata_combined_All, 'TMA')
+adata_combined_All = ad.read_h5ad('./data/loomCombined_processed.h5ad', chunk_size=100000)
 
 # Plot PCA embedding
 #sc.pl.embedding(adata_combined_All, basis='X_pca_harmony', color=['TMA'])
 #sc.pl.embedding(adata_combined_All, basis='X_pca', color=['TMA'])
-
-# Compute neighbors and embedding
-#sc.pp.neighbors(adata_combined_All, n_neighbors=15, n_pcs=30)
-#sc.pp.neighbors(adata_combined_All, n_neighbors=15, n_pcs=30, use_rep='X_pca_harmony')
-#sc.tl.umap(adata_combined_All)
 
 # Plot UMAP embedding
 sc.pl.umap(adata_combined_All, color=['Region'])
@@ -612,7 +610,7 @@ sc.pl.umap(adata_combined_All, color=['louvain'])
 #sc.pl.umap(adata_combined_All, color='leiden', save= 'Umap_LeidenClusters0.4.png')
 
 with rc_context({'figure.figsize': (10, 10)}):
-sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters0.5.png')
+sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters1.2.png')
 
 #with rc_context({'figure.figsize': (10, 10)}):
 #sc.pl.umap(adata_combined_All, color='Region', save= 'Umap_Regions.png')
@@ -624,33 +622,30 @@ sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters0.5.p
 #adata_combined_All.obs['louvain'].value_counts()
 
 # Cluster markers
-sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='t-test', pts=True)
+sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='wilcoxon', pts=True)
 
-#sc.tl.rank_genes_groups(adata_combined_All, groupby = 'leiden', method='wilcoxon')
+#sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='t-test', pts=True)
 
-#sc.tl.rank_genes_groups(adata_combined_All, groupby = 'leiden', method='logreg')
+#sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='logreg', pts=True)
 
 #sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='t-test', key_added='rank_genes_groups_Louvain')
 
 #sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='leiden', vmax=2, n_genes=3, values_to_plot = 'logfoldchanges', save='ClusterMarkersDotplot.png')
 
 #sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='leiden', n_genes=5, dendrogram = False, cmap='bwr', values_to_plot = 'logfoldchanges', vmin=-4, vmax=4, save='LeidenMarkersDotplot_0.3_scaled.png')
-sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='louvain', n_genes=5, dendrogram = False, cmap='bwr', values_to_plot = 'logfoldchanges', vmin=-4, vmax=4, save='LouvainMarkersDotplot_0.5_scaled.png')
-
+sc.pl.rank_genes_groups_dotplot(adata_combined_All, groupby='louvain', n_genes=5, dendrogram = False, cmap='bwr', values_to_plot = 'logfoldchanges', vmin=-4, vmax=4, save='LouvainMarkersDotplot_2_wilcoxon.png')
 
 #sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='LeidenMarkers0.3_ttest_scaled.png')
-sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='LouvainMarkers0.5_ttest_scaled.png')
+sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='LouvainMarkers_2_wilcoxon.png')
 
 #sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='ClustersMarkers0.3_Wilcox.png')
 #sc.pl.rank_genes_groups(adata_combined_All, n_genes=10, sharey=False, save='ClustersMarkers0.3_logreg.png')
 
 # Save the processed anndata object
-adata_combined_All.write(filename='./data/adataCombined_All_Proc_scaled.h5ad')
+adata_combined_All.write(filename='./data/adataCombined_All_processed.h5ad')
 
 # read the processed anndata object
-adata_combined_All = ad.read_h5ad('./data/adataCombined_All_Proc_scaled.h5ad', chunk_size=100000)
-
-
+adata_combined_All = ad.read_h5ad('./data/adataCombined_All_processed.h5ad', chunk_size=100000)
 
 #test = de.test.versus_rest(
 #    data=adata_combined_All,
@@ -693,10 +688,7 @@ adata_combined_All = ad.read_h5ad('./data/adataCombined_All_Proc_scaled.h5ad', c
 #ax = sc.pl.heatmap(adata_combined_All, marker_genes_dict, groupby='leiden', cmap='viridis', dendrogram=False, figsize=(11,11), save='ClustersHeatmap.png')
 #ax = sc.pl.stacked_violin(adata_combined_All, marker_genes_dict, groupby='leiden', swap_axes=False, dendrogram=False, save='ClustersViolin.png')
 
-RankMatrix = sc.get.rank_genes_groups_df(adata_combined_All, group='44')
-#np.isnan(RankMatrix).sum()
-#RankMatrix.isnull().sum()
-#RankMatrix.isin([0]).sum()
+RankMatrix_Pathml = sc.get.rank_genes_groups_df(adata_combined_All, group='0')
 
 ####################
 ## Annotate the clusters
@@ -705,51 +697,48 @@ RankMatrix = sc.get.rank_genes_groups_df(adata_combined_All, group='44')
 #sc.pl.violin(adata_combined_All, ['CD68-macrophages', 'CD163-macrophages', 'CD3-Tcells'], groupby='leiden')
 
 new_cluster_names = [
-    'Tcells0',
-    'tumor_immune1',
-    'tumor2',
-    'CD8Tcells3',
-    'NK_granulocytes4',
-    'immune_vasculature5',
-    'tumor_vasculature6',
-    'vasculature7',
-    'granulocytes8',
-    'immune_vasculature9',
-    'CD45ROTcells10',
-    'Tregs11',
-    'tumor12',
-    'tumor_immune13',
-    'immune_vasculature14',
-    'NK15',
-    'tumor_immune16',
-    'immune17',
-    'CD68CD163macrophages18',
-    'Tcells19',
-    'tumor_immune20',
-    'granulocytes21',
-    'immune_vasculature22',
-    'Tcells23',
-    'tumor24',
-    'CD68CD163macrophages25',
-    'CD11bCD68macrophages26',
-    'plasma_cells27',
-    'Tcells28',
-    'stroma_immune29',
-    'CD68macrophages30',
-    'lymphatic31',
-    'CD45ROTcells32',
-    'tumor_immune33',
-    'vasculature34',
-    'CD11bmonocytes35',
-    'tumor36',
-    'nerves37',
-    'CD163macrophages38',
-    'nerves39',
-    'NK40',
-    'NK41',
-    'Tcells42',
-    'DCs43',
-    'DC44'
+    'CD45_CD4_Tcells0',
+    'TILs_TAMs1',
+    'smooth_muscle2',
+    'CD38_CD68_macrophages3',
+    'tumor4',
+    'Bcells5',
+    'NK_cells6',
+    'tumor_immune7',
+    'TILs8',
+    'TILs9',
+    'Tregs10',
+    'unknown11',
+    'immune_vasculature12',
+    'tumor_immune_vasculature13',
+    'granulocytes14',
+    'immune_vasculature15',
+    'CD11bmonocytes16',
+    'Tregs17',
+    'Bcells18',
+    'CD4TcellsCD45RO19',
+    'granulocytes20',
+    'immune_vasculature21',
+    'plasma_cells22',
+    'immune_vasculature23',
+    'unknown24',
+    'dirt25',
+    'CD68CD163macrophages26',
+    'CD68CD163macrophages27',
+    'lymphatic28',
+    'plasma_cells29',
+    'stroma30',
+    'dirt31',
+    'immune32',
+    'epithelial_cells33',
+    'epithelial_immune34',
+    'dirt35',
+    'CD4TcellsGATA3_36',
+    'epithelial_immune37',
+    'CD4TcellsGATA3_38',
+    'Naive_memory_Tcells39',
+    'nerves40',
+    'CD68macrophagesGzmB41'
 ]
 
 
@@ -757,51 +746,48 @@ adata_combined_All.rename_categories('louvain',  new_cluster_names)
 
 ## Cell types Annotation
 old_to_new = dict(
-    Tcells0='T cells',
-    tumor_immune1='tumor/immune',
-    tumor2='tumor',
-    CD8Tcells3='CD8+ T cells',
-    NK_granulocytes4='NK/granulocytes',
-    immune_vasculature5='immune/vasculature',
-    tumor_vasculature6='tumor/vasculature',
-    vasculature7='vasculature',
-    granulocytes8='granulocytes',
-    immune_vasculature9='immune/vasculature',
-    CD45ROTcells10='CD45RO+ T cells',
-    Tregs11='Tregs',
-    tumor12='tumor',
-    tumor_immune13='tumor/immune',
-    immune_vasculature14='immune/vasculature',
-    NK15='NK cells',
-    tumor_immune16='tumor/immune',
-    immune17='immune cells',
-    CD68CD163macrophages18='CD68+CD163+ macrophages',
-    Tcells19='T cells',
-    tumor_immune20='tumor/immune',
-    granulocytes21='granulocytes',
-    immune_vasculature22='immune/vasculature',
-    Tcells23='T cells',
-    tumor24='tumor',
-    CD68CD163macrophages25='CD68+CD163+ macrophages',
-    CD11bCD68macrophages26='CD11b+CD68+ macrophages',
-    plasma_cells27='plasma cells',
-    Tcells28='T cells',
-    stroma_immune29='stroma/immune',
-    CD68macrophages30='CD68+ macrophages',
-    lymphatic31='lymphatic',
-    CD45ROTcells32='CD45RO+ T cells',
-    tumor_immune33='tumor/immune',
-    vasculature34='vasculature',
-    CD11bmonocytes35='CD11b+ monocytes',
-    tumor36= 'tumor',
-    nerves37= 'nerves',
-    CD163macrophages38 = 'CD163+ macrophages',
-    nerves39= 'nerves',
-    NK40= 'NK cells',
-    NK41= 'NK cells',
-    Tcells42 = 'T cells',
-    DCs43 ='DCs',
-    DC44='DCs'
+    CD45_CD4_Tcells0='CD45+CD4+ T cells',
+    TILs_TAMs1='TILs/TAMs',
+    smooth_muscle2='smooth muscles',
+    CD38_CD68_macrophages3='CD38+CD68+ macrophages',
+    tumor4='tumor',
+    Bcells5='B cells',
+    NK_cells6='NK cells',
+    tumor_immune7='tumor/immune',
+    TILs8='TILs',
+    TILs9='TILs',
+    Tregs10='Tregs',
+    unknown11='undefined',
+    immune_vasculature12='immune/vasculature',
+    tumor_immune_vasculature13='tumor/immune/vasculature',
+    granulocytes14='granulocytes',
+    immune_vasculature15='immune/vasculature',
+    CD11bmonocytes16='CD11b+ monocytes',
+    Tregs17='Tregs',
+    Bcells18='B cells',
+    CD4TcellsCD45RO19='CD4+CD45RO+ T cells',
+    granulocytes20='granulocytes',
+    immune_vasculature21='immune/vasculature',
+    plasma_cells22='plasma cells',
+    immune_vasculature23='immune/vasculature',
+    unknown24='undefined',
+    dirt25='dirt',
+    CD68CD163macrophages26='CD68+CD163+ macrophages',
+    CD68CD163macrophages27='CD68+CD163+ macrophages',
+    lymphatic28='lymphatic',
+    plasma_cells29='plasma cells',
+    stroma30='stroma',
+    dirt31='dirt',
+    immune32='immune cells',
+    epithelial_cells33='epithelial cells',
+    epithelial_immune34='epithelial/immune',
+    dirt35='dirt',
+    CD4TcellsGATA3_36= 'CD4+GATA3+ T cells',
+    epithelial_immune37= 'epithelial/immune',
+    CD4TcellsGATA3_38 = 'CD4+GATA3+ T cells',
+    Naive_memory_Tcells39= 'Naive/memory T cells',
+    nerves40= 'nerves',
+    CD68macrophagesGzmB41= 'CD68+GzmB+ macrophages'
 )
 
 adata_combined_All.obs['cell_types'] = (
@@ -810,6 +796,13 @@ adata_combined_All.obs['cell_types'] = (
     .astype('category')
 )
 
+adata_combined_All.obs['cell_types'].value_counts()
+
+# Save the anndata object with cell types
+adata_combined_All.write(filename='./data/adataCombined_cell_types.h5ad')
+
+# read the processed anndata object
+adata_combined_All = ad.read_h5ad('./data/adataCombined_cell_types.h5ad', chunk_size=100000)
 
 ##############################################
 import squidpy as sq
@@ -825,19 +818,15 @@ sq.gr.nhood_enrichment(adata_combined_All, cluster_key="louvain")
 sq.pl.nhood_enrichment(adata_combined_All, cluster_key="louvain", method="ward", figsize=(30,15), dpi=200, save='NeighberhoodEnrichment.png')
 plt.show()
 
-sq.gr.co_occurrence(adata_combined_All, cluster_key="leiden")
-sq.pl.co_occurrence(adata_combined_All, cluster_key="leiden")
-plt.show()
-
 
 ###################################
 ## Our data using pathml
 LoomData = adata_combined_All.to_df()
-LoomData['CellID'] = np.linspace(0, 406958, num= 406958).astype(int)
+LoomData['CellID'] = np.linspace(0, 282577, num= 282578).astype(int)
 LoomData.set_index('CellID', inplace=True)
 
 LoomObs = adata_combined_All.obs
-LoomObs['CellID'] = np.linspace(0, 406958, num= 406958).astype(int)
+LoomObs['CellID'] = np.linspace(0, 282577, num= 282578).astype(int)
 LoomObs.set_index('CellID', inplace=True)
 
 loomDataAnn = pd.concat([LoomObs, LoomData], axis = 1)
@@ -852,8 +841,6 @@ len(loomDataAnn['cell_types'].unique())
 # save
 loomDataAnn.to_csv('./data/CRC_pathml.csv')
 
-X = pd.read_csv('./data/CRC_pathml.csv')
-len(X['cell_types'].unique())
 
 
-#############################
+

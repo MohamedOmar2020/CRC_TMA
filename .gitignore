@@ -2,5 +2,10 @@
 data/
 objs/
 *log
+.Rproj
+.user
+renv/
+renv.lock
+dask-worker-space/
 
 .Rproj.user
