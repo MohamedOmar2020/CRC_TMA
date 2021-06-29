@@ -688,7 +688,7 @@ adata_combined_All = ad.read_h5ad('./data/adataCombined_All_processed.h5ad', chu
 #ax = sc.pl.heatmap(adata_combined_All, marker_genes_dict, groupby='leiden', cmap='viridis', dendrogram=False, figsize=(11,11), save='ClustersHeatmap.png')
 #ax = sc.pl.stacked_violin(adata_combined_All, marker_genes_dict, groupby='leiden', swap_axes=False, dendrogram=False, save='ClustersViolin.png')
 
-RankMatrix_Pathml = sc.get.rank_genes_groups_df(adata_combined_All, group='0')
+RankMatrix_Pathml = sc.get.rank_genes_groups_df(adata_combined_All, group=None)
 
 ####################
 ## Annotate the clusters
@@ -796,6 +796,7 @@ adata_combined_All.obs['cell_types'] = (
     .astype('category')
 )
 
+adata_combined_All.obs['louvain'].value_counts()
 adata_combined_All.obs['cell_types'].value_counts()
 
 # Save the anndata object with cell types
@@ -804,20 +805,23 @@ adata_combined_All.write(filename='./data/adataCombined_cell_types.h5ad')
 # read the processed anndata object
 adata_combined_All = ad.read_h5ad('./data/adataCombined_cell_types.h5ad', chunk_size=100000)
 
+
+
+##################
+
 ##############################################
-import squidpy as sq
-sc.set_figure_params(dpi=200, frameon= True, figsize=(15,15), format='png', fontsize=12)
-sc.pl.spatial(adata_combined_All, color='louvain', spot_size=15)
-sc.pl.spatial(adata_combined_All, color='Region', spot_size=15)
+#import squidpy as sq
+#sc.set_figure_params(dpi=200, frameon= True, figsize=(15,15), format='png', fontsize=12)
+#sc.pl.spatial(adata_combined_All, color='louvain', spot_size=15)
+#sc.pl.spatial(adata_combined_All, color='Region', spot_size=15)
 #sc.pl.spatial(dataset_A.slides[0].counts, color='leiden', spot_size=15)
-sc.pl.spatial(adata_combined_All, color="leiden", groups=["2","4"], spot_size=15)
+#sc.pl.spatial(adata_combined_All, color="leiden", groups=["2","4"], spot_size=15)
 
 
-sq.gr.spatial_neighbors(adata_combined_All)
-sq.gr.nhood_enrichment(adata_combined_All, cluster_key="louvain")
-sq.pl.nhood_enrichment(adata_combined_All, cluster_key="louvain", method="ward", figsize=(30,15), dpi=200, save='NeighberhoodEnrichment.png')
-plt.show()
-
+#sq.gr.spatial_neighbors(adata_combined_All)
+#sq.gr.nhood_enrichment(adata_combined_All, cluster_key="louvain")
+#sq.pl.nhood_enrichment(adata_combined_All, cluster_key="louvain", method="ward", figsize=(30,15), dpi=200, save='NeighberhoodEnrichment.png')
+#plt.show()
 
 ###################################
 ## Our data using pathml

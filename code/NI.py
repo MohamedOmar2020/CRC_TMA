@@ -216,11 +216,11 @@ niche_clusters = (k_centroids[k_to_plot])
 tissue_avgs = values.mean(axis = 0)
 fc = np.log2(((niche_clusters+tissue_avgs)/(niche_clusters+tissue_avgs).sum(axis = 1, keepdims = True))/tissue_avgs)
 fc = pd.DataFrame(fc,columns = sum_cols)
-s=sns.clustermap(fc.loc[[0,2,3,4,5,6,7,8,9],cell_order], vmin =-3,vmax = 3,cmap = 'bwr',row_cluster = False)
+s=sns.clustermap(fc.loc[[0,1,2,3,4,5,6,7,8,9],cell_order], vmin =-3,vmax = 3,cmap = 'bwr',row_cluster = False)
 s.savefig("figures/celltypes_perniche_10.pdf")
 
 ######
-## I guess groups here (1,2) refer to CLR and DII?
+## groups here (1,2) refer to CLR and DII
 cells['neighborhood10'] = cells['neighborhood10'].astype('category')
 sns.lmplot(data = cells[cells['groups']=='CLR'],x = 'x',y='y',hue = 'neighborhood10',palette = 'bright',height = 8,col = reg,col_wrap = 10,fit_reg = False)
 plt.savefig('figures/lmplot_CLR.png')
@@ -250,6 +250,7 @@ handles, labels = ax.get_legend_handles_labels()
 ax.legend(handles[:2], labels[:2], title="Groups",
           handletextpad=0, columnspacing=1,
           loc="upper left", ncol=3, frameon=True)
+
 plt.savefig('figures/Neighborhood_Frequency.png')
 
 #t-test to evaluate if any neighborhood is enriched in one group
