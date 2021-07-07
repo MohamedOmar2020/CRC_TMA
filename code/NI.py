@@ -219,6 +219,20 @@ fc = pd.DataFrame(fc,columns = sum_cols)
 s=sns.clustermap(fc.loc[[0,1,2,3,4,5,6,7,8,9],cell_order], vmin =-3,vmax = 3,cmap = 'bwr',row_cluster = False)
 s.savefig("figures/celltypes_perniche_10.pdf")
 
+# same as above but annotated
+k_to_plot = 10
+niche_clusters = (k_centroids[k_to_plot])
+tissue_avgs = values.mean(axis = 0)
+fc = np.log2(((niche_clusters+tissue_avgs)/(niche_clusters+tissue_avgs).sum(axis = 1, keepdims = True))/tissue_avgs)
+fc = pd.DataFrame(fc,columns = sum_cols)
+fc = fc.drop(index=1, axis=0)
+fc.index = ['tumor enriched', 'memory T-cell enriched', 'immune-inflitrated stroma', 'follicle', 'immune-vasculature', 'granulocyte enriched', 'immune-infiltrated tumor', 'plasma cell enriched', 'TILs enriched']
+s=sns.clustermap(fc, vmin =-3,vmax = 3,cmap = 'bwr',row_cluster = False)
+s.savefig("figures/celltypes_perniche_Annotated.pdf")
+
+
+
+
 ######
 ## groups here (1,2) refer to CLR and DII
 cells['neighborhood10'] = cells['neighborhood10'].astype('category')
@@ -232,25 +246,31 @@ plt.savefig('figures/lmplot_DII.png')
 
 ###############
 ## Write the file with neighborhood info to a csv file
-cells.to_csv('./data/CRC_pathml_Neighbors.csv')
+# Add neighborhood names
+cells = cells[cells.neighborhood10 != 1]
+cells['neighborhood_names'] = cells['neighborhood10'].map({0: 'Tumor_enriched', 2: 'memory T-cell enriched', 3:'immune-inflitrated stroma', 4:'follicle', 5:'immune-vasculature', 6:'granulocyte enriched', 7:'immune-infiltrated tumor', 8:'plasma cell enriched', 9:'TILs enriched'})
+cells['neighborhood_names'] = cells['neighborhood_names'].astype('category')
+cells.to_csv('./data/CRC_pathml_Neighbors_withNames.csv')
 
 
 #####################################
 #plot for each group and each patient the percent of total cells allocated to each neighborhood
 fc = cells.groupby(['patients','groups']).apply(lambda x: x['neighborhood10'].value_counts(sort = False,normalize = True))
 
-fc.columns = range(10)
+fc.columns = range(9)
 melt = pd.melt(fc.reset_index(),id_vars = ['patients','groups'])
 melt = melt.rename(columns = {'variable':'neighborhood','value':'frequency of neighborhood'})
-f,ax = plt.subplots(figsize = (10,5))
+melt['neighborhood'] = melt['neighborhood'].map({0: 'Tumor_enriched', 2: 'memory T-cell enriched', 3:'immune-inflitrated stroma', 4:'follicle', 5:'immune-vasculature', 6:'granulocyte enriched', 7:'immune-infiltrated tumor', 8:'plasma cell enriched', 9:'TILs enriched'})
+
+f,ax = plt.subplots(figsize = (10,7))
 sns.stripplot(data = melt, hue = 'groups',dodge = True,alpha = .2,x ='neighborhood', y ='frequency of neighborhood')
 sns.pointplot(data = melt, scatter_kws  = {'marker': 'd'},hue = 'groups',dodge = .5,join = False,x ='neighborhood', y ='frequency of neighborhood')
-
 handles, labels = ax.get_legend_handles_labels()
+plt.xticks(rotation=45, fontsize="10", ha="center")
 ax.legend(handles[:2], labels[:2], title="Groups",
           handletextpad=0, columnspacing=1,
           loc="upper left", ncol=3, frameon=True)
-
+plt.tight_layout()
 plt.savefig('figures/Neighborhood_Frequency.png')
 
 #t-test to evaluate if any neighborhood is enriched in one group

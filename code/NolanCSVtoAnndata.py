@@ -113,30 +113,29 @@ Nolan_adata.raw = Nolan_adata
 # Scaling
 sc.pp.log1p(Nolan_adata)
 sc.pp.scale(Nolan_adata, max_value=10)
-#sc.pl.violin(adata_combined_All, keys=['HOECHST1'], save='DAPI_scaled.png')
+sc.pp.combat(Nolan_adata, key='Region')
 
 # PCA and batch correction
 #bbknn.ridge_regression(adata_combined_All, batch_key=['Region'], confounder_key=['patients'])
 sc.tl.pca(Nolan_adata)
 sc.pl.pca_variance_ratio(Nolan_adata, n_pcs=40, log=True)
 #bbknn.bbknn(adata_combined_All, batch_key='Region', neighbors_within_batch = 15, n_pcs = 30, trim = 40)
-sc.external.pp.harmony_integrate(Nolan_adata, key='Region')
+#sc.external.pp.harmony_integrate(Nolan_adata, key='Region')
 
-Nolan_adata.write(filename='./data/Nolan_adata_harmony.h5ad')
+Nolan_adata.write(filename='./data/Nolan_adata_combat.h5ad')
 
-adata_combined_All = ad.read_h5ad('./data/Nolan_adata_harmony.h5ad', chunk_size=100000)
+adata_combined_All = ad.read_h5ad('./data/Nolan_adata_combat.h5ad', chunk_size=100000)
 
-sc.pp.neighbors(Nolan_adata, n_neighbors=15, n_pcs=40, use_rep='X_pca_harmony')
+sc.pp.neighbors(Nolan_adata, n_neighbors=10, n_pcs=30)
 
 # compute Umap embedding
 sc.tl.umap(Nolan_adata)
 
 # louvain clustering
 with parallel_backend('threading', n_jobs=15):
-    sc.tl.louvain(Nolan_adata, resolution = 2)
+    sc.tl.louvain(Nolan_adata, resolution = 3)
 
 Nolan_adata.obs['louvain'].value_counts()
-
 
 #Nolan_adata.obs['groups'] = Nolan_adata.obs['groups'].astype('category')
 #Nolan_adata.obs['patients'] = Nolan_adata.obs['patients'].astype('category')
@@ -175,7 +174,16 @@ sc.tl.rank_genes_groups(adata_combined_All, groupby = 'cell_types', method='wilc
 RankMatrix_Pathml = sc.get.rank_genes_groups_df(adata_combined_All, group=None)
 
 
-
+##############
+# Check the count matrix
+CountMatrix = Nolan_adata.to_df()
+np.isnan(CountMatrix).sum()
+CountMatrix.isnull().sum()
+CountMatrix.isin([0]).sum()
+CountMatrix.max()
+CountMatrix.min()
+CountMatrix.mean()
+CountMatrix
 
 
 
