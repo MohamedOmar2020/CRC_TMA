@@ -140,7 +140,7 @@ Nolan_adata.obs['louvain'].value_counts()
 #Nolan_adata.obs['groups'] = Nolan_adata.obs['groups'].astype('category')
 #Nolan_adata.obs['patients'] = Nolan_adata.obs['patients'].astype('category')
 
-# Save results for DE with MAST
+# Save results
 Nolan_adata.write(filename='./data/Nolan_adata_processed.h5ad')
 
 Nolan_adata = ad.read_h5ad('./data/Nolan_adata_processed.h5ad', chunk_size=100000)
@@ -169,9 +169,6 @@ sc.pl.rank_genes_groups(Nolan_adata, n_genes=10, sharey=False, save='NolanMarker
 
 RankMatrix_Nolan = sc.get.rank_genes_groups_df(Nolan_adata, group=None)
 
-sc.tl.rank_genes_groups(adata_combined_All, groupby = 'cell_types', method='wilcoxon', pts=True)
-
-RankMatrix_Pathml = sc.get.rank_genes_groups_df(adata_combined_All, group=None)
 
 
 ##############

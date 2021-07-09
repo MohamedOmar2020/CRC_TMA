@@ -557,7 +557,7 @@ CountMatrix = adata_combined_All.to_df()
 np.isnan(CountMatrix).sum()
 CountMatrix.isnull().sum()
 CountMatrix.isin([0]).sum()
-CountMatrix.max()
+CountMatrix.max().max()
 CountMatrix.min()
 CountMatrix
 
@@ -717,7 +717,7 @@ CountMatrix
 
 ###################################
 ## Normal scanpy pipline with harmony
-
+sc.pp.normalize_total(adata_combined_All, target_sum=1e3)
 sc.pp.log1p(adata_combined_All)
 sc.pp.scale(adata_combined_All, max_value=10)
 
@@ -725,7 +725,7 @@ sc.pp.scale(adata_combined_All, max_value=10)
 #sc.pp.combat(adata_combined_All, key='Region')
 
 # PCA and batch correction
-sc.tl.pca(adata_combined_All, zero_center=False)
+sc.tl.pca(adata_combined_All)
 #sc.pl.pca_variance_ratio(adata_combined_All, n_pcs=40, log=True)
 sc.external.pp.harmony_integrate(adata_combined_All, key='Region')
 
@@ -741,7 +741,7 @@ sc.tl.umap(adata_combined_All)
 
 # louvain clustering
 with parallel_backend('threading', n_jobs=15):
-    sc.tl.louvain(adata_combined_All, resolution = 1)
+    sc.tl.louvain(adata_combined_All, resolution = 5)
 
 adata_combined_All.obs['louvain'].value_counts()
 
@@ -759,7 +759,7 @@ sc.pl.umap(adata_combined_All, color=['groups'])
 sc.pl.umap(adata_combined_All, color=['louvain'])
 
 with rc_context({'figure.figsize': (10, 10)}):
-sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters1.2.png')
+sc.pl.umap(adata_combined_All, color='louvain', save= 'Umap_LouvainClusters3.png')
 
 # Cluster markers
 sc.tl.rank_genes_groups(adata_combined_All, groupby = 'louvain', method='wilcoxon', pts=True)
@@ -797,7 +797,7 @@ marker_genes_dict = {
 
 
 cell_annotation = sc.tl.marker_gene_overlap(adata_combined_All, marker_genes_dict, top_n_markers=10)
-cell_annotation_norm = sc.tl.marker_gene_overlap(adata_combined_All, marker_genes_dict, top_n_markers=10, normalize='reference')
+cell_annotation_norm = sc.tl.marker_gene_overlap(adata_combined_All, marker_genes_dict, top_n_markers=20, normalize='reference')
 
 
 
@@ -816,7 +816,31 @@ adata_combined_All = ad.read_h5ad('./data/adataCombined_All_processed.h5ad', chu
 #sc.pl.violin(Nolan_adata, ['MUC-1-epithelia', 'p53', 'Ki67', 'aSMA-smooth muscle'], groupby='clusters')
 #sc.pl.violin(adata_combined_All, ['CD68-macrophages', 'CD163-macrophages', 'CD3-Tcells'], groupby='leiden')
 
-RankMatrix_Pathml = sc.get.rank_genes_groups_df(adata_all, group='0')
+
+
+# Fill in the clusters that belong to each cell type based on each marker in the plot above
+cell_dict = {'tumor': ['8'],
+             'stroma': ['0'],
+             'B cells': ['1', '5', '10'],
+             'CD68+CD163+ macrophages': ['2'],
+             'smooth muscles': ['3', '7'],
+             'tumor/immune': ['4'],
+             'CD38+CD68+ macrophages': ['6'],
+             'granulocytes': ['9'],
+             'unknown': ['11'],
+             'immune': ['12'],
+             'artifact':['13'],
+             'plasma cells':['14'],
+
+             }
+
+# Initialize empty column in cell metadata
+adata.obs['merged'] = np.nan
+
+# Generate new assignments
+for i in cell_dict.keys():
+    ind = pd.Series(adata.obs.leiden).isin(cell_dict[i])
+    adata.obs.loc[ind,'merged'] = i
 
 new_cluster_names = [
     'immune0',
